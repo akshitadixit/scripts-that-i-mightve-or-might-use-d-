@@ -11,16 +11,16 @@ require 'redis'
 class Client
   def initialize
     @queue = Redis.new(host: "localhost", port: 6379, db: 15)
-    puts "Client initialized"
+    puts "Client initialized\n\n"
   end
 
-  def create_job()
-    print "Enter Job: "
-    Job.new(gets.chomp)
+  def create_job(prompt)
+    print "Job Scheduler Client: "
+    Job.new(prompt)
   end
 
   def push_to_q(job)
-    @queue.rpush('queue1', job.to_s)
+    @queue.rpush('queue1', job.to_string) #serialized
     puts "Pushed #{job.id}"
   end
 
@@ -31,10 +31,11 @@ end
 
 producer = Client.new
 loop do
-  job = producer.create_job
+  print ">> "
+  prompt = gets.chomp
+  break if prompt == "exit"
+  job = producer.create_job(prompt)
+
   producer.push_to_q(job)
-  print "Exit [y/n]? "
-  ch = gets.chomp
-  break if ch == "y"
 end
 producer.finalize

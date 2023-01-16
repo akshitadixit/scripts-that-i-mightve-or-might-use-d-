@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'byebug'
 
 class Job
   def initialize(title)
@@ -15,7 +16,7 @@ class Job
     @id
   end
 
-  def to_s
+  def to_string
     hash = {
       "id"=> @id,
       "title"=> @title,
@@ -27,8 +28,7 @@ class Job
 
 
   def from_s(str)
-    hash = str.to_a[1]
-    puts hash
+    hash = eval str.to_a[1]
     @id = hash["id"].to_s
     @title = hash["title"].to_s
     @timestamp = hash["timestamp"].to_s
@@ -40,13 +40,13 @@ class Job
     # Process.spawn : return process_id
     # system("ls") : returns nil/true based on success
 
-    puts "Running #{@id}"
-    sleep 7
+    puts "Running #{@title}"
+    sleep 7 # pretending to run a job here
     @completed = true
 
     # check if job ended, remove it from concurrency count
     if @completed
-      puts "Completed #{@id}"
+      puts "Completed #{@title}"
     elsif @retries < @retry_limit
       @retries += 1
       @run

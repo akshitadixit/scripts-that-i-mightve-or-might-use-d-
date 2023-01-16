@@ -15,11 +15,19 @@ class Server
     @queue = Redis.new(host: "localhost", port: 6379, db: 15)
     @concurrency_limit = 3
     @concurrency = 0
-    puts "Server initialized"
+    puts "Server initialized\n"
   end
 
   def queue_length
     @queue.keys('*').length
+  end
+
+  def concurrency
+    @concurrency
+  end
+
+  def concurrency_limit
+    @concurrency_limit
   end
 
   def quit?
@@ -33,51 +41,52 @@ class Server
     rescue IO::WaitReadable, IO::EAGAINWaitReadable
       IO.select([STDIN])
       retry
+    end
   end
 
   def pull_from_q
-    if @concurrency<@concurrency_limit
-      job_s = @queue.blpop('queue1')
-      if job_s.length
-        @concurrency += 1
-        # deserialize
-        job = Job.new("")
-        job.from_s(job_s)
+    job_s = @queue.blpop('queue1')
+    if job_s.length
+      @concurrency += 1
+      # deserialize
+      job = Job.new("")
+      job.from_s(job_s)
+      t = Thread.new do
         job.run
-        @concurrency_limit -= 1
-      else
-        return
+        @concurrency -= 1
       end
-    else
-      puts "Concurrency limit reached, will re-pull soon..."
-      sleep 7
     end
   end
 
   def finalize
-    puts "Server closed"
+    puts "\nServer closed"
   end
 end
 
-
-end
-
-puts "Type 'q' to stop the server"
+puts "Hit ^C to stop the server"
 consumer = Server.new
 prev_n = -1
-loop do
-  n = consumer.queue_length
-  if n!=prev_n
-    puts "#{n} jobs in queue"
-    prev_n = n
+begin
+  loop do
+    n = consumer.queue_length
+    if n!=prev_n
+      puts "#{n} jobs in queue"
+      prev_n = n
+    end
+
+    if n == 0
+      # if there is nothing on the queue yet, sleep
+      sleep 3
+    else
+      if consumer.concurrency<consumer.concurrency_limit
+        consumer.pull_from_q
+      end
+    end
+
   end
 
-  if n == 0
-    # if there is nothing on the queue yet, sleep
-    sleep 3
-  else
-    consumer.pull_from_q
-  end
+rescue Interrupt => e
+  puts "\b\b.....#{consumer.queue_length} remaining jobs in queue"
 
 end
 
