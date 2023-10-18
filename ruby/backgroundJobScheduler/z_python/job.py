@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 import os
-from time import sleep
 from typing import Optional
 
 @dataclass
